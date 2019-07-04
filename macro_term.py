@@ -7,9 +7,6 @@ import argparse
 from pynput import keyboard
 from pynput.keyboard import Controller
 
-parser = argparse.ArgumentParser(description='.json file to import macros from')
-#TODO finish implenting argparse
-
 def options_menu():
     '''
     prints the options menu
@@ -37,7 +34,6 @@ def get_valid_keypress_input(input_question, invalid_input_response):
                             ',', '.', '/', '*', '`']
     for key in valid_keyboard_press:
         if user_input == key:
-            #print(f'your valid input is {user_input}')
             return user_input
     print(invalid_input_response)
     return 'fail'
@@ -54,7 +50,7 @@ def get_valid_keypress_string(string_input_question, invalid_string_response):
     valid_keyboard_press = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 'q', 'w',
                             'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', 'a', 's', 'd', 'f',
                             'g', 'h', 'j', 'k', 'l', ';', '\'', 'z', 'x', 'c', 'v', 'b', 'n', 'm',
-                            ',', '.', '/', '*', '`']
+                            ',', '.', '/', '*', '`', ' ']
     user_input_list = [char for char in user_input]
     is_valid = False
     for char in user_input_list:
@@ -94,8 +90,7 @@ def get_valid_file_path(path_input, invalid_path_response):
     path_input: The string to be outputted to the user when asking for the file path\n
     invalid_path_response: The string to be outputted to the user if the file path is invalid
     '''
-#NTS add support for filename without path?
-    if path.exists(path_input):
+    if path.exists(path_input):#NTS add support for filename without path?
         return path_input
     print(invalid_path_response)
     return 'fail'
@@ -127,6 +122,7 @@ def import_macro(file_path, import_dict):
             data = file.read().strip()
         data_dict = json.loads(data)
         import_dict.update(data_dict)
+        print(f'{file_path} has been imported')
         return import_dict
     return import_dict
 
@@ -143,36 +139,34 @@ def create_macro(keypress_input, keypress_string, create_dict):
             keypress_input = str(keypress_input)
             keypress_string = str(keypress_string)
             create_dict[keypress_input] = keypress_string
-            print(create_dict)#NTS remove after debuging
             return create_dict
         return create_dict
     return create_dict
 
 def listening_mode(listen_dict):
     '''
-    Activates listening mode where MarcoTerm will be listen for the marcos/n
+    Activates listening mode where marco_term will be listen for the marcos/n
+    has three functions to handle the key press, key release and the output of the macro/n
     listen_dict: dictionary where the macros are stored
     '''
     currently_pressed = set()
+    currently_pressed.add(keyboard.Key.enter)
     currently_pressed_macro = set()
+
     def on_press(key):
         '''
         uses currently_pressed to keep track of the keys being presses,/n
         then check if those keys are a macro shortcut/n
         and passes them to currently_pressed_macro if they are
         '''
-        print(f'{key} pressed')#NTS remove after debuging
         currently_pressed.add(key)
         if keyboard.Key.alt_r in currently_pressed:
-            print('alt is pressed')#NTS remove after debuging
             for macro in listen_dict:
-                #if keyboard.KeyCode.from_char(macro) in currently_pressed:
                 str_key = str(key)
-                print(str_key)#NTS remove after debuging
                 if macro == str_key[1]:
-                    print(f'macro {key} triggered')#NTS remove after debuging
                     currently_pressed_macro.add(f'macro is pressed')
                     currently_pressed_macro.add(macro)
+
     def on_release(key):
         '''
         uses currently_pressed_macro to check if a macro shortcut is pressed\n
@@ -181,48 +175,51 @@ def listening_mode(listen_dict):
         try:
             currently_pressed.remove(key)
         except KeyError:
-            print('key release excpetion')#NTS remove after debuging
+            print('181: unable to remove element key from set currently_pressed')
         if 'macro is pressed' in currently_pressed_macro:
             currently_pressed_macro.remove('macro is pressed')
             released_marco = str(currently_pressed_macro.pop())
-            print(released_marco)#NTS remove after debuging
-            print(f'macro released is {released_marco}')#NTS remove after debuging
             output_macro(released_marco, listen_dict)
             currently_pressed_macro.clear()
-        print(f'{key} release')#NTS remove after debuging
         if key == keyboard.Key.esc:
-            print('esc pressed')#NTS remove after debuging
             listener.stop()
+
     def output_macro(activated_macro, output_dict):
         '''
         checks output_dict for the key activated_macro\n
-        then outputs the value of activated_macro using pynput keyboard controller
+        then outputs the value of activated_macro using pynput macro_output controller
         '''
-        print('output trigged')#NTS remove after debuging
-        print(output_dict)#NTS remove after debuging
-        print(f'the macro activated is {activated_macro}')#NTS remove after debuging
         if activated_macro in output_dict:
             macro_value = output_dict[activated_macro]
-            print(f'output from macro_value = {macro_value}')#NTS remove after debuging
             for char in macro_value:
-                print(f'output {char}')#NTS remove after debuging
-                keyboard = Controller()
-                keyboard.press(char)
-                keyboard.release(char)
+                macro_output = Controller()
+                macro_output.press(char)
+                macro_output.release(char)
         else:
             print('not found')
+
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
 
 def main():
     '''
-    Handles the main logic for navigating the menus and calling functions
+    Handles the main logic for parse args, navigating the menus and calling functions
     '''
     macro_dict = {}
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--path', type=str, help='path of .json file to be imported on start')
+    args = parser.parse_args()
+    if args.path:
+        path_str = str(args.path)
+        import_macro(get_valid_file_path(path_str, 'That is not a valid file path'), macro_dict)
+
     options_menu()
-    create_string = 'your macro will be activated by holding alt and a key of your choice'
+    create_string = 'your macro will be activated by holding right alt and a key of your choice '
     create_string2 = 'please type the key you would like to use\n'
+    invalid_filename = 'That is not a valid filename, filenames must not have more than 255 '
+    invalid_filename2 = 'characters or contain the characters < > : \" / \' | ? * NUL'
     main_input = input()
+
     while main_input != '7':
         if main_input == '1':
             macro_dict = create_macro(
@@ -234,15 +231,17 @@ def main():
             main_input = input()
         elif main_input == '4':
             path_input = input('Enter the path of the file you want to input\n')
-            macro_dict = import_macro(get_valid_file_path(path_input,
-                'That is not a valid file path'), macro_dict)
+            macro_dict = import_macro(get_valid_file_path(
+                path_input, 'file path not found'), macro_dict)
             main_input = input()
         elif main_input == '5':
-            save_macro(macro_dict, get_valid_filename('What would you like your file to be named?\n'
-                                                        , 'That is not a valid filename'))
+            save_macro(macro_dict, get_valid_filename(
+                'What would you like your file to be named?\n'
+                , invalid_filename + invalid_filename2))
             main_input = input()
         elif main_input == '6':
             listening_mode(macro_dict)
+            options_menu()
             main_input = input()
         else:
             print('your input is invalid')
