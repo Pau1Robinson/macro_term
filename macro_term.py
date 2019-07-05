@@ -1,11 +1,13 @@
 '''
 macro_term written by Paul Robinson for Assessment 1: Plan and Implement a Terminal Application
+Licence: GPLv3
 '''
 from os import path
 import json
 import argparse
-from pynput import keyboard
-from pynput.keyboard import Controller
+if __name__ == "__main__":#This allows test_macro_term.py to work
+    from pynput import keyboard
+    from pynput.keyboard import Controller
 
 def options_menu():
     '''
@@ -17,7 +19,7 @@ def options_menu():
     print('[4] Import macros from a file')
     print('[5] Save your macros to a file')
     print('[6] Listen for your macros and shortcuts')
-    print('[7] Exit MacroTerm')
+    print('[7] Exit macro_term')
 
 def get_valid_keypress_input(input_question, invalid_input_response):
     '''
@@ -59,7 +61,7 @@ def get_valid_keypress_string(string_input_question, invalid_string_response):
                 is_valid = True
     if is_valid is False:
         print(invalid_string_response)
-        return 'fail'
+        return 'FAIL'
     return user_input
 
 def get_valid_filename(filename_input_question, invalid_filename_response):
@@ -93,7 +95,7 @@ def get_valid_file_path(path_input, invalid_path_response):
     if path.exists(path_input):#NTS add support for filename without path?
         return path_input
     print(invalid_path_response)
-    return 'fail'
+    return '<fail>'
 
 def save_macro(save_dict, filename):
     '''
@@ -101,7 +103,7 @@ def save_macro(save_dict, filename):
     save_dict: the dictionary to be saved to the file
     filename: the name to be used for the file
     '''
-    if filename != 'fail':
+    if filename != '<fail>':
         dict_string = json.dumps(save_dict)
         filename = filename.strip()
         if (filename.split('.')[-1] != 'json') or (filename == 'json'):
@@ -135,7 +137,7 @@ def create_macro(keypress_input, keypress_string, create_dict):
     create_dict: The dictionary where keypress_input and keypress_string are added to
     '''
     if keypress_input != 'fail':
-        if keypress_string != 'fail':
+        if keypress_string != 'FAIL':
             keypress_input = str(keypress_input)
             keypress_string = str(keypress_string)
             create_dict[keypress_input] = keypress_string
@@ -149,13 +151,14 @@ def listening_mode(listen_dict):
     has three functions to handle the key press, key release and the output of the macro/n
     listen_dict: dictionary where the macros are stored
     '''
+    print('macro_term is now listening for your macros')
     currently_pressed = set()
     currently_pressed.add(keyboard.Key.enter)
     currently_pressed_macro = set()
 
     def on_press(key):
         '''
-        uses currently_pressed to keep track of the keys being presses,/n
+        Uses currently_pressed to keep track of the keys being presses,/n
         then check if those keys are a macro shortcut/n
         and passes them to currently_pressed_macro if they are
         '''
@@ -169,25 +172,29 @@ def listening_mode(listen_dict):
 
     def on_release(key):
         '''
-        uses currently_pressed_macro to check if a macro shortcut is pressed\n
-        and on the release of that shortcut activates the macro using output_macro
+        Activities on the release of a key, uses currently_pressed_macro to check/n
+        if a macro has been activated. Then calls output_macro with the macro as an argument/n
+        Also checks if the esc key has been released and returns to menu if it has.
         '''
         try:
             currently_pressed.remove(key)
         except KeyError:
-            print('181: unable to remove element key from set currently_pressed')
+            print('on_release: unable to remove element key from set currently_pressed')
         if 'macro is pressed' in currently_pressed_macro:
             currently_pressed_macro.remove('macro is pressed')
             released_marco = str(currently_pressed_macro.pop())
             output_macro(released_marco, listen_dict)
             currently_pressed_macro.clear()
         if key == keyboard.Key.esc:
+            currently_pressed.clear()
+            currently_pressed_macro.clear()
             listener.stop()
 
     def output_macro(activated_macro, output_dict):
         '''
-        checks output_dict for the key activated_macro\n
-        then outputs the value of activated_macro using pynput macro_output controller
+        Checks output_dict for the key activated_macro\n
+        then outputs the value of activated_macro to the keyboard/n
+        using pynput macro_output controller
         '''
         if activated_macro in output_dict:
             macro_value = output_dict[activated_macro]
@@ -195,6 +202,7 @@ def listening_mode(listen_dict):
                 macro_output = Controller()
                 macro_output.press(char)
                 macro_output.release(char)
+            print(f'macro alt_r + {activated_macro}:\'{macro_value}\' has been activated')
         else:
             print('not found')
 
@@ -248,4 +256,5 @@ def main():
             main_input = input()
     exit()
 
-main()
+if __name__ == "__main__":
+    main()
