@@ -38,7 +38,7 @@ def get_valid_keypress_input(input_question, invalid_input_response):
         if user_input == key:
             return user_input
     print(invalid_input_response)
-    return 'fail'
+    return 'FAIL'
 
 def get_valid_keypress_string(string_input_question, invalid_string_response):
     '''
@@ -118,7 +118,7 @@ def import_macro(file_path, import_dict):
     file_path: The path of the file to be imported\n
     import_dict: The dictionary the data from file will be imported into
     '''
-    if file_path != 'fail':
+    if file_path != '<fail>':
         file_path = str(file_path)
         with open(file_path) as file:
             data = file.read().strip()
@@ -136,7 +136,7 @@ def create_macro(keypress_input, keypress_string, create_dict):
     Keypress_string: The keypresses that will be outputted by the macro/n
     create_dict: The dictionary where keypress_input and keypress_string are added to
     '''
-    if keypress_input != 'fail':
+    if keypress_input != 'FAIL':
         if keypress_string != 'FAIL':
             keypress_input = str(keypress_input)
             keypress_string = str(keypress_string)
@@ -198,10 +198,8 @@ def listening_mode(listen_dict):
         '''
         if activated_macro in output_dict:
             macro_value = output_dict[activated_macro]
-            for char in macro_value:
-                macro_output = Controller()
-                macro_output.press(char)
-                macro_output.release(char)
+            macro_output = Controller()
+            macro_output.type(macro_value)
             print(f'macro alt_r + {activated_macro}:\'{macro_value}\' has been activated')
         else:
             print('not found')
@@ -234,18 +232,21 @@ def main():
                 get_valid_keypress_input(create_string + create_string2, 'that is not a valid key'),
                 get_valid_keypress_string(
                     'enter the keystrokes you would like your macro to output\n',
-                    'those are not valid keystokes'), macro_dict)
+                    'those are not valid keystrokes'), macro_dict)
             print(macro_dict)
+            options_menu()
             main_input = input()
         elif main_input == '4':
             path_input = input('Enter the path of the file you want to input\n')
             macro_dict = import_macro(get_valid_file_path(
                 path_input, 'file path not found'), macro_dict)
+            options_menu()
             main_input = input()
         elif main_input == '5':
             save_macro(macro_dict, get_valid_filename(
                 'What would you like your file to be named?\n'
                 , invalid_filename + invalid_filename2))
+            options_menu()
             main_input = input()
         elif main_input == '6':
             listening_mode(macro_dict)
@@ -253,6 +254,7 @@ def main():
             main_input = input()
         else:
             print('your input is invalid')
+            options_menu()
             main_input = input()
     exit()
 
