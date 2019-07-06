@@ -2,11 +2,31 @@
 
 macro_term is a program for creating and using of macros and keyboard shortcuts. macro_term lets you create, save, import and even use macros while your using another application.
 
+## System information
+
+Made and tested on
+
+Windows 10 Home 64-bit (10.0, Build 18362) (18362.19h1_release_svc_prod1.190606-1842)
+
+Intel(R) Core(TM) i7-4700HQ CPU @ 2.40GHz (8 CPUs), ~2.4GHz
+
+16384MB RAM
+
+Intel(R) HD Graphics 4600
+
+NVIDIA GeForce GT 750M
+
 ## Installation
+
+Install pyinstaller using pip3 install pyinstaller and run build.sh for linux/osx or build.bat for windows
+
+You can also  install from the command line by typing the commands below in terminal or cmd.
+
+>pyinstaller --clean -f
 
 ## Running macro_term
 
-when starting macro_term you are able to specify a  .json file containing macros to be imported when macro_term starts. To do this use the add --path file_path when running macro_term from the command line for example.
+when starting macro_term from the terminal you are able to specify a  .json file containing macros to be imported when macro_term starts. To do this use the add --path file_path when running macro_term from the command line for example.
 
 > macro_term --path C:\my_folder\my_macros.json
 
