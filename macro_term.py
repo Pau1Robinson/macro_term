@@ -5,6 +5,8 @@ Licence: GPLv3
 from os import path
 import json
 import argparse
+import time
+import threading
 if __name__ == "__main__":#This allows test_macro_term.py to work
     from pynput import keyboard
     from pynput.keyboard import Controller
@@ -140,7 +142,24 @@ def create_macro(keypress_input, keypress_string, create_dict):
         if keypress_string != 'FAIL':
             keypress_input = str(keypress_input)
             keypress_string = str(keypress_string)
-            create_dict[keypress_input] = keypress_string
+            create_dict[f'M{keypress_input}'] = keypress_string
+            return create_dict
+        return create_dict
+    return create_dict
+
+def create_repeating_macro(keypress_input, keypress_macro, create_dict):
+    '''
+    Takes input from keypress_input and keypress_macro and writes it into create_dict/n
+    to store as a repeating macro/n
+    keypress_input: The first keypress that will be used to activate the macro/n
+    Keypress_macro: The keypresses that will be outputted by the macro/n
+    create_dict: The dictionary where keypress_input and keypress_macro are added to
+    '''
+    if keypress_input != 'FAIL':
+        if keypress_macro != 'FAIL':
+            keypress_input = str(keypress_input)
+            keypress_macro = str(keypress_macro)
+            create_dict[f'R{keypress_input}'] = keypress_macro
             return create_dict
         return create_dict
     return create_dict
@@ -155,6 +174,7 @@ def listening_mode(listen_dict):
     currently_pressed = set()
     currently_pressed.add(keyboard.Key.enter)
     currently_pressed_macro = set()
+    ctrl_pressed = set()
 
     def on_press(key):
         '''
@@ -166,9 +186,13 @@ def listening_mode(listen_dict):
         if keyboard.Key.alt_r in currently_pressed:
             for macro in listen_dict:
                 str_key = str(key)
-                if macro == str_key[1]:
+                str_macro = str(macro)
+                if str_macro[1] == str_key[1]:
                     currently_pressed_macro.add(f'macro is pressed')
                     currently_pressed_macro.add(macro)
+        str_key = str(key)
+        if keyboard.Key.ctrl_r in currently_pressed:
+            ctrl_pressed.add('Y')
 
     def on_release(key):
         '''
@@ -182,30 +206,51 @@ def listening_mode(listen_dict):
             print('on_release: unable to remove element key from set currently_pressed')
         if 'macro is pressed' in currently_pressed_macro:
             currently_pressed_macro.remove('macro is pressed')
-            released_marco = str(currently_pressed_macro.pop())
-            output_macro(released_marco, listen_dict)
+            released_macro = str(currently_pressed_macro.pop())
+            ctrl_pressed.clear()
+            if released_macro[0] == 'M':
+                output_macro(released_macro, listen_dict)
+            elif released_macro[0] == 'R':
+                thread_repeat_macro_output = threading.Thread(
+                    target=output_repeating_macro, args=(released_macro, listen_dict))
+                thread_repeat_macro_output.start()
             currently_pressed_macro.clear()
         if key == keyboard.Key.esc:
             currently_pressed.clear()
             currently_pressed_macro.clear()
             listener.stop()
 
-    def output_macro(activated_macro, output_dict):
+    def output_repeating_macro(repeating_macro, repeat_dict):
         '''
-        Checks output_dict for the key activated_macro\n
-        then outputs the value of activated_macro to the keyboard/n
-        using pynput macro_output controller
+        Used to output the repeating macro using multithreading
         '''
-        if activated_macro in output_dict:
-            macro_value = output_dict[activated_macro]
-            macro_output = Controller()
-            macro_output.type(macro_value)
-            print(f'macro alt_r + {activated_macro}:\'{macro_value}\' has been activated')
-        else:
-            print('not found')
+        print(f'outputing repeating macro {repeating_macro[1]}')
+        while True:
+            repeating_macro_value = repeat_dict[repeating_macro]
+            repeating_macro_output = Controller()
+            repeating_macro_output.type(repeating_macro_value)
+            time.sleep(.100)
+            if 'Y' in ctrl_pressed:
+                print(f'Stopping repeating macro {repeating_macro[1]} ')
+                break
 
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
+
+def output_macro(activated_macro, output_dict):
+    '''
+    Checks output_dict for the key activated_macro\n
+    then outputs the value of activated_macro to the keyboard/n
+    using pynput macro_output controller
+    '''
+    print(activated_macro)
+    print(output_dict)
+    activated_macro = str(activated_macro)
+    macro_value = output_dict[activated_macro]
+    macro_output = Controller()
+    print(macro_value)
+    macro_output.type(macro_value)
+    print(f'macro alt_r + {activated_macro}:\'{macro_value}\' has been activated')
 
 def main():
     '''
@@ -233,6 +278,15 @@ def main():
                 get_valid_keypress_string(
                     'enter the keystrokes you would like your macro to output\n',
                     'those are not valid keystrokes'), macro_dict)
+            print(macro_dict)
+            options_menu()
+            main_input = input()
+        elif main_input == '2':
+            macro_dict = create_repeating_macro(
+                get_valid_keypress_input(create_string + create_string2, 'that is not a valid key'),
+                get_valid_keypress_input(
+                    'enter the key press you would like your macro to output\n',
+                    'that is not a valid key'), macro_dict)
             print(macro_dict)
             options_menu()
             main_input = input()
